@@ -17,6 +17,7 @@
 import os
 import subprocess
 
+import tenacity
 import yaml
 
 from charmhelpers.core import hookenv
@@ -294,8 +295,8 @@ def get_installed_channel(snapname):
     hookenv.log('Get channel for snap {}'.format(snapname))
     if not reactive.is_flag_set(get_installed_flag(snapname)):
         hookenv.log(
-            'Cannot get snap tracking (channel) because it is not installed'
-            .format(snapname), hookenv.WARNING)
+            'Cannot get snap tracking (channel) because it is not installed',
+            hookenv.WARNING)
         return
     return subprocess.check_output(cmd).decode('utf-8', errors='replace').partition(
         'tracking:')[-1].split()[0]
@@ -341,17 +342,23 @@ def _install_store(snapname, **kw):
     cmd.extend(_snap_args(**kw))
     cmd.append(snapname)
     hookenv.log('Installing {} from store'.format(snapname))
-    try:
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-        hookenv.log('Installation successful cmd="{}" output="{}"'
-                    .format(cmd, out),
-                    level=hookenv.DEBUG)
-        reactive.clear_flag(get_local_flag(snapname))
-    except subprocess.CalledProcessError as cp:
-        hookenv.log('Installation failed cmd="{}" returncode={} output="{}"'
-                    .format(cmd, cp.returncode, cp.output),
-                    level=hookenv.ERROR)
-        raise
+
+    for attempt in tenacity.Retrying(
+            wait=tenacity.wait_fixed(10),  # seconds
+            stop=tenacity.stop_after_attempt(3),
+            reraise=True):
+        with attempt:
+            try:
+                out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+                hookenv.log('Installation successful cmd="{}" output="{}"'
+                            .format(cmd, out),
+                            level=hookenv.DEBUG)
+                reactive.clear_flag(get_local_flag(snapname))
+            except subprocess.CalledProcessError as cp:
+                hookenv.log('Installation failed cmd="{}" returncode={} output="{}"'
+                            .format(cmd, cp.returncode, cp.output),
+                            level=hookenv.ERROR)
+                raise
 
 
 def _refresh_store(snapname, **kw):
@@ -382,11 +389,17 @@ def _resource_get(snapname):
 def get_available_refreshes():
     '''Return a list of snaps which have refreshes available.
     '''
-    out = subprocess.check_output(['snap', 'refresh', '--list']).decode('utf8')
+    try:
+        out = subprocess.check_output(['snap', 'refresh', '--list']).decode('utf8')
+    except subprocess.CalledProcessError:
+        # If snap refresh fails for whatever reason, we should just return no
+        # refreshes available - LP:1869630.
+        return []
+
     if out == 'All snaps up to date.':
         return []
     else:
-        return [l.split()[0] for l in out.splitlines()[1:]]
+        return [line.split()[0] for line in out.splitlines()[1:]]
 
 
 def is_refresh_available(snapname):
