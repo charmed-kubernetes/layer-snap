@@ -351,25 +351,28 @@ def _install_store(snapname, **kw):
     cmd.append(snapname)
     hookenv.log("Installing {} from store".format(snapname))
 
-    for attempt in tenacity.Retrying(
+    # Use tenacity decorator for Trusty support (See LP Bug #1934163)
+    @tenacity.retry(
         wait=tenacity.wait_fixed(10),  # seconds
         stop=tenacity.stop_after_attempt(3),
         reraise=True,
-    ):
-        with attempt:
-            try:
-                out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-                hookenv.log(
-                    'Installation successful cmd="{}" output="{}"'.format(cmd, out),
-                    level=hookenv.DEBUG,
-                )
-                reactive.clear_flag(get_local_flag(snapname))
-            except subprocess.CalledProcessError as cp:
-                hookenv.log(
-                    'Installation failed cmd="{}" returncode={} output="{}"'.format(cmd, cp.returncode, cp.output),
-                    level=hookenv.ERROR,
-                )
-                raise
+    )
+    def _run_install():
+        try:
+            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            hookenv.log(
+                'Installation successful cmd="{}" output="{}"'.format(cmd, out),
+                level=hookenv.DEBUG,
+            )
+            reactive.clear_flag(get_local_flag(snapname))
+        except subprocess.CalledProcessError as cp:
+            hookenv.log(
+                'Installation failed cmd="{}" returncode={} output="{}"'.format(cmd, cp.returncode, cp.output),
+                level=hookenv.ERROR,
+            )
+            raise
+
+    _run_install()
 
 
 def _refresh_store(snapname, **kw):
