@@ -300,7 +300,15 @@ def get_installed_channel(snapname):
             hookenv.WARNING,
         )
         return
-    return subprocess.check_output(cmd).decode("utf-8", errors="replace").partition("tracking:")[-1].split()[0]
+    try:
+        return subprocess.check_output(cmd).decode("utf-8", errors="replace").partition("tracking:")[-1].split()[0]
+    except Exception as e:
+        # If it fails to get the channel information(ex. installed via resource), return nothing.
+        hookenv.log(
+            "Cannot get snap tracking (channel): {}".format(e),
+            hookenv.WARNING,
+        )
+        return
 
 
 def _snap_args(
