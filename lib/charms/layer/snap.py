@@ -273,11 +273,30 @@ def get(snapname, key):
     return subprocess.check_output(["snap", "get", snapname, key]).strip()
 
 
+def _snap_list():
+    """Constructs a dict with all installed snaps.
+    
+    Queries all the snaps installed and returns a dict containing their
+    versions and tracking channels, indexed by the snap name.
+    """
+    cmd = ["snap", "list"]
+    out = subprocess.check_output(cmd).decode("utf-8", errors="replace").split()
+    snaps = {}
+    for i in range(6, len(out) - 5, 6): # Skip first six, which are the titles
+        # Snap list has 6 columns:
+        # name, version, revision, tracking channel, publisher and notes
+        # We only care about name (0), version (1) and tracking channel (3)
+        snaps[out[i]] = {
+            'version': out[i + 1],
+            'channel': out[i + 3],
+        }
+    return snaps
+
+
 def get_installed_version(snapname):
     """Gets the installed version of a snapname.
-    This function will fail if snapname is not an installed snap.
+    This function will return nothing if snapname is not an installed snap.
     """
-    cmd = ["snap", "info", snapname]
     hookenv.log("Get installed key for snap {}".format(snapname))
     if not reactive.is_flag_set(get_installed_flag(snapname)):
         hookenv.log(
@@ -285,14 +304,21 @@ def get_installed_version(snapname):
             hookenv.WARNING,
         )
         return
-    return subprocess.check_output(cmd).decode("utf-8", errors="replace").partition("installed:")[-1].split()[0]
+    try:
+        return _snap_list()[snapname]['version']
+    except Exception as e:
+        # If it fails to get the version information(ex. installed via resource), return nothing.
+        hookenv.log(
+            "Cannot get snap version: {}".format(e),
+            hookenv.WARNING,
+        )
+        return
 
 
 def get_installed_channel(snapname):
     """Gets the tracking (channel) of a snapname.
-    This function will fail if snapname is not an installed snap.
+    This function will return nothing if snapname is not an installed snap.
     """
-    cmd = ["snap", "info", snapname]
     hookenv.log("Get channel for snap {}".format(snapname))
     if not reactive.is_flag_set(get_installed_flag(snapname)):
         hookenv.log(
@@ -301,7 +327,7 @@ def get_installed_channel(snapname):
         )
         return
     try:
-        return subprocess.check_output(cmd).decode("utf-8", errors="replace").partition("tracking:")[-1].split()[0]
+        return _snap_list()[snapname]['channel']
     except Exception as e:
         # If it fails to get the channel information(ex. installed via resource), return nothing.
         hookenv.log(
