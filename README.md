@@ -78,7 +78,11 @@ correspond to `snap install` command line options.
 * revision (str) - Install an explicit revision of the snap. Ignored if the
                    snap is being installed from a Juju resource.
 
-The other key is `connect`, which declares the `snap connect` commands
+One non-install related key is `remove`, which if present and set to True
+will force the next charm hook to remove the snap if the reactive flag for that
+snap is active.
+
+Another key is `connect`, which declares the `snap connect` commands
 to run to connect the snap's plugs to suitable slots. Each entry is a
 two element list, with the first item being the plug name and the second
 the target snap and slot name. The connections are made after all snaps
