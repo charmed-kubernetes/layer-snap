@@ -80,10 +80,11 @@ def install():
             continue
         installed_flag = snap.get_installed_flag(snapname)
         currently_installed = reactive.is_flag_set(installed_flag)
-        if currently_installed and snap_opts.get("remove") is True:
+        removable = snap_opts.get("remove") is True
+        if currently_installed and removable:
             # Remove a previously installed snap
             snap.remove(snapname)
-        elif not currently_installed:
+        elif not currently_installed and not removable:
             # Install a missing snap
             snap.install(snapname, **snap_opts)
     if data_changed("snap.install.opts", opts):
