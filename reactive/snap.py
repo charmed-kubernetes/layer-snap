@@ -63,11 +63,26 @@ def install():
         return
 
     opts = sorted_snap_opts()
+    remove, install = [], []
+    for snapname, snap_opts in opts.items():
+        which = remove if snap_opts.get("remove") is True else install
+        which.append((snapname, snap_opts))
+
+    # Ensure that the snaps with the remove option are guaranteed
+    # to be removed  before any other snap is installed, regardless
+    # of the sort order of the layer yaml
+    for snapname, snap_opts in remove:
+        installed_flag = snap.get_installed_flag(snapname)
+        currently_installed = reactive.is_flag_set(installed_flag)
+        if currently_installed:
+            # Remove a previously installed snap
+            snap.remove(snapname)
+
     # supported-architectures is EXPERIMENTAL and undocumented.
     # It probably should live in the base layer, blocking the charm
     # during bootstrap if the arch is unsupported.
     arch = uname().machine
-    for snapname, snap_opts in opts.items():
+    for snapname, snap_opts in install:
         supported_archs = snap_opts.pop("supported-architectures", None)
         if supported_archs and arch not in supported_archs:
             # Note that this does *not* error. The charm will need to
@@ -80,11 +95,7 @@ def install():
             continue
         installed_flag = snap.get_installed_flag(snapname)
         currently_installed = reactive.is_flag_set(installed_flag)
-        to_remove = snap_opts.get("remove") is True
-        if currently_installed and to_remove:
-            # Remove a previously installed snap
-            snap.remove(snapname)
-        elif not currently_installed and not to_remove:
+        if not currently_installed:
             # Install a missing snap
             snap.install(snapname, **snap_opts)
     if data_changed("snap.install.opts", opts):
