@@ -2,7 +2,7 @@ import unittest.mock as mock
 
 from reactive import snap
 from charms import layer
-from charms.reactive import set_flag
+from charms.reactive import set_flag, clear_flag
 
 
 @mock.patch.object(snap, "snap")
@@ -15,6 +15,8 @@ def test_install(mock_snap_lib):
         "remove-me": {"remove": True},
     }
     set_flag("snap.installed.remove-me")
+    set_flag("snap.installed.core")
+    clear_flag("snap.installed.install-me")
     snap.install()
     # guarantees the call order is remove-me first
     mock_snap_lib.assert_has_calls(
