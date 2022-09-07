@@ -78,8 +78,14 @@ def install():
                 ERROR,
             )
             continue
-        installed_flag = "snap.installed.{}".format(snapname)
-        if not reactive.is_flag_set(installed_flag):
+        installed_flag = snap.get_installed_flag(snapname)
+        currently_installed = reactive.is_flag_set(installed_flag)
+        to_remove = snap_opts.get("remove") is True
+        if currently_installed and to_remove:
+            # Remove a previously installed snap
+            snap.remove(snapname)
+        elif not currently_installed and not to_remove:
+            # Install a missing snap
             snap.install(snapname, **snap_opts)
     if data_changed("snap.install.opts", opts):
         snap.connect_all()

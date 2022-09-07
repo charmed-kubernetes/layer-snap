@@ -275,20 +275,20 @@ def get(snapname, key):
 
 def _snap_list():
     """Constructs a dict with all installed snaps.
-    
+
     Queries all the snaps installed and returns a dict containing their
     versions and tracking channels, indexed by the snap name.
     """
     cmd = ["snap", "list"]
     out = subprocess.check_output(cmd).decode("utf-8", errors="replace").split()
     snaps = {}
-    for i in range(6, len(out) - 5, 6): # Skip first six, which are the titles
+    for i in range(6, len(out) - 5, 6):  # Skip first six, which are the titles
         # Snap list has 6 columns:
         # name, version, revision, tracking channel, publisher and notes
         # We only care about name (0), version (1) and tracking channel (3)
         snaps[out[i]] = {
-            'version': out[i + 1],
-            'channel': out[i + 3],
+            "version": out[i + 1],
+            "channel": out[i + 3],
         }
     return snaps
 
@@ -305,7 +305,7 @@ def get_installed_version(snapname):
         )
         return
     try:
-        return _snap_list()[snapname]['version']
+        return _snap_list()[snapname]["version"]
     except Exception as e:
         # If it fails to get the version information(ex. installed via resource), return nothing.
         hookenv.log(
@@ -327,7 +327,7 @@ def get_installed_channel(snapname):
         )
         return
     try:
-        return _snap_list()[snapname]['channel']
+        return _snap_list()[snapname]["channel"]
     except Exception as e:
         # If it fails to get the channel information(ex. installed via resource), return nothing.
         hookenv.log(
