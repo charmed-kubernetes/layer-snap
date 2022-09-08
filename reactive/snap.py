@@ -65,8 +65,8 @@ def install():
     opts = sorted_snap_opts()
     remove, install = [], []
     for snapname, snap_opts in opts.items():
-        which = remove if snap_opts.get("remove") is True else install
-        which.append((snapname, snap_opts))
+        action = remove if snap_opts.get("remove") is True else install
+        action.append((snapname, snap_opts))
 
     # Ensure that the snaps with the remove option are guaranteed
     # to be removed  before any other snap is installed, regardless
