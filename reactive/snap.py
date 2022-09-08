@@ -118,12 +118,14 @@ def refresh():
         return
 
     opts = sorted_snap_opts()
+    install = [(snapname, snap_opts) for snapname, snap_opts in opts.items() if snap_opts.get("remove") is not True]
+
     # supported-architectures is EXPERIMENTAL and undocumented.
     # It probably should live in the base layer, blocking the charm
     # during bootstrap if the arch is unsupported.
     arch = uname()[4]
     check_refresh_available()
-    for snapname, snap_opts in opts.items():
+    for snapname, snap_opts in install:
         supported_archs = snap_opts.pop("supported-architectures", None)
         if supported_archs and arch not in supported_archs:
             continue
