@@ -1,4 +1,5 @@
 # Newer versions of tenacity rely on `typing` which is in stdlib in
 # python3.5 but not python3.4. We want to continue to support
 # python3.4 (Trusty)
-tenacity<5.0.4
+tenacity<5.0.4;python_version == '3.4'
+tenacity;python_version >= '3.5'
