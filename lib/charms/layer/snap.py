@@ -432,7 +432,7 @@ def _refresh_store(snapname, **kw):
             )
         except subprocess.CalledProcessError as cp:
             hookenv.log(
-                'Installation failed cmd="{}" returncode={} output="{}"'.format(cmd, cp.returncode, cp.output),
+                'Refresh failed cmd="{}" returncode={} output="{}"'.format(cmd, cp.returncode, cp.output),
                 level=hookenv.ERROR,
             )
             raise
