@@ -385,7 +385,6 @@ def _install_store(snapname, **kw):
     cmd.append(snapname)
     hookenv.log("Installing {} from store".format(snapname))
 
-    # Use tenacity decorator for Trusty support (See LP Bug #1934163)
     @tenacity.retry(
         wait=tenacity.wait_fixed(10),  # seconds
         stop=tenacity.stop_after_attempt(3),
@@ -418,8 +417,27 @@ def _refresh_store(snapname, **kw):
     cmd.extend(_snap_args(**kw))
     cmd.append(snapname)
     hookenv.log("Refreshing {} from store".format(snapname))
-    out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    print(out)
+
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(10),
+        stop=tenacity.stop_after_attempt(3),
+        reraise=True,
+    )
+    def _run_refresh():
+        try:
+            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            hookenv.log(
+                'Refresh successful cmd="{}" output="{}"'.format(cmd, out),
+                level=hookenv.DEBUG,
+            )
+        except subprocess.CalledProcessError as cp:
+            hookenv.log(
+                'Installation failed cmd="{}" returncode={} output="{}"'.format(cmd, cp.returncode, cp.output),
+                level=hookenv.ERROR,
+            )
+            raise
+
+    _run_refresh()
 
 
 def _resource_get(snapname):

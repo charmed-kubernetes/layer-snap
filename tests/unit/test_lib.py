@@ -39,6 +39,16 @@ def test_install_store(mock_install_store):
     assert snap.get_installed_snaps() == ["core", "test"]
 
 
+def test_refresh_store(mock_subprocess):
+    local_flag = snap.get_local_flag("test")
+    reactive.clear_flag.reset_mock()
+    snap.refresh("test")
+    mock_subprocess.check_output.assert_called_with(
+        ["snap", "refresh", "--amend", "--channel=stable", "test"], stderr=mock_subprocess.STDOUT
+    )
+    reactive.clear_flag.assert_called_once_with(local_flag)
+
+
 def test_remove(mock_subprocess):
     reactive.set_flag("snap.installed.test")
     snap.remove("test")
