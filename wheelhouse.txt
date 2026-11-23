@@ -2,4 +2,6 @@
 # python3.5 but not python3.4. We want to continue to support
 # python3.4 (Trusty)
 tenacity<5.0.4;python_version == '3.4'
-tenacity;python_version >= '3.5'
+# tenacity>=9.2 switched build backend to hatchling/hatch-vcs, which are not
+# present in reactive charm source-only wheelhouses during offline install.
+tenacity<9.2.0;python_version >= '3.5'
